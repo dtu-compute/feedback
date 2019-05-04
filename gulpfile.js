@@ -17,15 +17,15 @@ gulp.task('sass', function () {
     .pipe(gulp.dest(DIST));
 });
 
-gulp.task("build-ts", function () {
-    var tsResult = gulp.src("index.ts")
-        .pipe(ts({
-              noImplicitAny: true,
-              module: 'amd',
-              out: "feedback.js"
-        }));
-    return tsResult.js.pipe(gulp.dest(DIST));
-});
+const tsProj = ts.createProject('tsconfig.json');
 
+gulp.task('build-ts', () => {
+    return gulp.src('src/**/*.ts')
+        .pipe(sourcemaps.init())
+        .pipe(tsProj())
+       // .pipe(babel())
+        .pipe(sourcemaps.write('.'))
+        .pipe(gulp.dest(DIST));
+});
 
 gulp.task("default", gulp.parallel('build-ts', 'sass'));

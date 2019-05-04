@@ -194,14 +194,33 @@
     display: -webkit-inline-flex;
     display: inline-flex;
     flex-direction: row;
+    justify-content: space-evenly;
     height: 56px;
     min-width: 232px;
 
-    .dragger {
+    > button {
+      margin: 0 8px;
+      svg {
+        margin-right: 5px;
+        width: 1.5em;
+      }
+    }
+
+    .fb-dragger {
       height: 100%;
       background-color: #fff;
       cursor: move;
       cursor: -webkit-grab;
+      display: flex;
+      align-content: flex-start;
+      flex-direction: column;
+
+      .fb-dragger-icon {
+        padding: 2px 5px;
+        width: 3em;
+        height: 2em;
+        fill: #757575;
+      }
     }
   }
 

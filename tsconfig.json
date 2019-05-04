@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "amd",
+    "module": "commonjs",
     "target": "es2015",
     "sourceMap": true,
     "declaration": true,

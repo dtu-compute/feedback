@@ -1,4 +1,8 @@
 import * as html2canvas from 'html2canvas';
+import { library, dom, icon } from '@fortawesome/fontawesome-svg-core'
+import { faGripHorizontal, faHighlighter, faEraser } from '@fortawesome/free-solid-svg-icons'
+
+library.add(faGripHorizontal, faHighlighter, faEraser);
 
 /*
   TODO:
@@ -9,9 +13,9 @@ import * as html2canvas from 'html2canvas';
     - better messages
     - icons
       - remove (on helper)
-      - drag
-      - highlight
-      - blackout
+      - [X] drag
+      - [X] highlight
+      - [X] blackout
       - edit (on screenshot)
     - helper when opening drawer first
     - ripple effect for checkbox
@@ -23,7 +27,9 @@ export interface FeedbackOptions {
   backgroundOpacity?: number;
   allowedTags?: string[];
   footnote?: string;
+  placeholderText: string;
   endpoint: string;
+  headers?: { string: string };
 }
 
 export interface HTML2CanvasOptions {
@@ -84,23 +90,29 @@ interface Helper extends Area {
   index: number;
 }
 
-export class Feedback {
-
-  private _options: FeedbackOptions = {
-    classPrefix: 'fb-',
-    backgroundOpacity: .5,
-    allowedTags: [
-      'button', 'a', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'p',
-      'i', 'strong', 'small', 'sub', 'sup', 'b', 'time', 'img',
-      'caption', 'input', 'label', 'legend', 'select', 'textarea',
-      'details', 'summary'
-    ],
-    footnote:
+const DEFAULT_OPTIONS : FeedbackOptions = {
+  classPrefix: 'fb-',
+  backgroundOpacity: .5,
+  allowedTags: [
+    'button', 'a', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'p',
+    'i', 'strong', 'small', 'sub', 'sup', 'b', 'time', 'img',
+    'caption', 'input', 'label', 'legend', 'select', 'textarea',
+    'details', 'summary'
+  ],
+  footnote:
       `Go to the Legal Help page to request content changes for legal reasons. `
       + `Your feedback, additional info, and email will be sent to Feedback. `
       + `See Privacy Policy and Terms of Service.`,
-    endpoint: 'https://very-api-so-cool.url/'
-  };
+  placeholderText:
+      'Describe your issue or share your ideas.',
+  endpoint: 'https://very-api-so-cool.url/'
+};
+
+let classFor: (baseClassName:string) => string = baseClassName => baseClassName;
+
+export class Feedback {
+
+  private _options: FeedbackOptions;
 
   private _html2canvasOptions: HTML2CanvasOptions = {
     allowTaint: true
@@ -168,18 +180,20 @@ export class Feedback {
   private _uncheckedPath = `M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z`;
 
   constructor(options?: FeedbackOptions, html2canvasOptions?: HTML2CanvasOptions) {
-    if (options) {
-      this._options = {
-        ...this._options,
-        ...options
-      };
-    }
+    this._options = {
+      ...DEFAULT_OPTIONS,
+      ...(options || {})
+    };
 
     if (html2canvasOptions) {
       this._html2canvasOptions = {
         ...this._html2canvasOptions,
         ...html2canvasOptions
       };
+    }
+
+    if (this._options.classPrefix) {
+      classFor = (baseClassName) => `${this._options.classPrefix}${baseClassName}`;
     }
   }
 
@@ -213,7 +227,7 @@ export class Feedback {
     // https://stackoverflow.com/a/37096563/1994803
     document.body.removeChild(this._root);
     this._reset();
-  }
+  };
 
   private _reset() {
     this._state = { ...this._initState };
@@ -240,15 +254,21 @@ export class Feedback {
 
     const headers = new Headers();
     headers.append('Content-Type', 'application/json');
+    for (const [key, value] of Object.entries(this._options.headers)) {
+      headers.append(key, value);
+    }
 
     const data = {
-      description: (<HTMLInputElement>this._form.querySelector('.textarea')).value,
-      screenshot: this._screenshotCanvas.toDataURL()
+      feedback: {
+        url: window.location.href,
+        description: (<HTMLTextAreaElement>this._form.querySelector('textarea')).value,
+        screenshot: this._screenshotCanvas.toDataURL()
+      }
     };
 
     fetch(this._options.endpoint, {
       method: 'POST',
-      headers: headers,
+      headers,
       body: JSON.stringify(data)
     })
       .then(resp => {
@@ -269,7 +289,7 @@ export class Feedback {
     if ($event.key === 'Escape') {
       this.close();
     }
-  }
+  };
 
   private _toggleScreenshot = ($event: MouseEvent) => {
     $event.preventDefault();
@@ -284,7 +304,7 @@ export class Feedback {
       this._form.insertBefore(this._createScreenshotContainer(), this._footnoteContainer);
       this._genScreenshot();
     }
-  }
+  };
 
   private _genScreenshot() {
     this._html2canvasOptions = {
@@ -316,7 +336,7 @@ export class Feedback {
     this._root.appendChild(this._createDrawOptions());
     document.addEventListener('mousemove', this._highlightElement);
     document.addEventListener('click', this._addHighlightedElement);
-  }
+  };
 
   private _closeDrawer = () => {
     this._state.canDraw = false;
@@ -326,11 +346,11 @@ export class Feedback {
     document.removeEventListener('mousemove', this._highlightElement);
     document.removeEventListener('click', this._addHighlightedElement);
     this._genScreenshot();
-  }
+  };
 
   private _createHeader(): HTMLDivElement {
     const header = document.createElement('div');
-    header.className = `${this._options.classPrefix}header`;
+    header.className = classFor('header');
 
     const headerH1 = document.createElement('h1');
     headerH1.innerText = 'Send feedback';
@@ -340,7 +360,7 @@ export class Feedback {
 
   private _createForm(): HTMLDivElement {
     const container = document.createElement('div');
-    container.className = `${this._options.classPrefix}form-container`;
+    container.className = classFor('form-container');
     container.setAttribute('data-html2canvas-ignore', 'true');
     this._formContainer = container;
 
@@ -383,17 +403,17 @@ export class Feedback {
     this._helpersContainer.style.width = `${width}px`;
     this._helpersContainer.style.height = `${height}px`;
     this._redraw();
-  }
+  };
 
   private _createTextarea(): HTMLTextAreaElement {
     const textarea = document.createElement('textarea');
-    textarea.placeholder = 'Describe your issue or share your ideas.';
+    textarea.placeholder = this._options.placeholderText;
     return textarea;
   }
 
   private _createCheckboxContainer(): HTMLDivElement {
     const checkboxContainer = document.createElement('div');
-    checkboxContainer.className = `${this._options.classPrefix}checkbox`;
+    checkboxContainer.className = classFor('checkbox');
 
     const checkboxLabel = document.createElement('label');
     checkboxLabel.addEventListener('click', this._toggleScreenshot);
@@ -432,7 +452,7 @@ export class Feedback {
 
   private _createScreenshotContainer(): HTMLDivElement {
     const screenshotContainer = document.createElement('div');
-    screenshotContainer.className = `${this._options.classPrefix}screenshot`;
+    screenshotContainer.className = classFor('screenshot');
     screenshotContainer.addEventListener('click', this._openDrawer);
     this._screenshotContainer = screenshotContainer;
     return screenshotContainer;
@@ -447,7 +467,7 @@ export class Feedback {
 
   private _createActionsContainer(): HTMLDivElement {
     const actions = document.createElement('div');
-    actions.className = `${this._options.classPrefix}actions`;
+    actions.className = classFor('actions');
 
     const sendButtonContainer = document.createElement('div');
     sendButtonContainer.classList.add('mat-button');
@@ -477,11 +497,14 @@ export class Feedback {
 
   private _createDrawOptions(): HTMLDivElement {
     const drawOptions = document.createElement('div');
-    drawOptions.className = `${this._options.classPrefix}draw-options`;
+    drawOptions.className = classFor('draw-options');
 
     const draggerContainer = document.createElement('div');
-    draggerContainer.className = 'dragger';
-    draggerContainer.innerText = 'dragger';
+    const draggerContainerIcon = document.createElement('i');
+    draggerContainer.classList.add(classFor('dragger'));
+    draggerContainer.innerHTML = icon(faGripHorizontal,
+                              { classes: [classFor('dragger-icon')]}
+                                     ).html[0];
 
     draggerContainer.addEventListener('mousedown', this._dragStart);
     document.addEventListener('mousemove', this._dragDrag);
@@ -490,21 +513,23 @@ export class Feedback {
     this._dragger = draggerContainer;
     drawOptions.appendChild(draggerContainer);
 
-    const highlightButtonContainer = document.createElement('div');
     const highlightButton = document.createElement('button');
-    highlightButton.innerText = 'highlight';
     highlightButton.type = 'button';
     highlightButton.addEventListener('click', () => this._state.highlight = true);
-    highlightButtonContainer.appendChild(highlightButton);
-    drawOptions.appendChild(highlightButtonContainer);
+    highlightButton.innerHTML = icon(faHighlighter).html[0];
+    const hilightLabelSpan = document.createElement('span');
+    hilightLabelSpan.innerText = 'highlight';
+    highlightButton.appendChild(hilightLabelSpan);
+    drawOptions.appendChild(highlightButton);
 
-    const blackoutButtonContainer = document.createElement('div');
     const blackoutButton = document.createElement('button');
-    blackoutButton.innerText = 'blackout';
     blackoutButton.type = 'button';
     blackoutButton.addEventListener('click', () => this._state.highlight = false);
-    blackoutButtonContainer.appendChild(blackoutButton);
-    drawOptions.appendChild(blackoutButtonContainer);
+    blackoutButton.innerHTML = icon(faEraser).html[0];
+    const blackoutLabelSpan = document.createElement('span');
+    blackoutLabelSpan.innerText = 'blackout';
+    blackoutButton.appendChild(blackoutLabelSpan);
+    drawOptions.appendChild(blackoutButton);
 
     const doneButtonContainer = document.createElement('div');
     doneButtonContainer.classList.add('mat-button');
@@ -543,7 +568,7 @@ export class Feedback {
       this._drawOptionsPos.limits.yNeg = -rect.top;
       this._drawOptionsPos.limits.yPos = document.documentElement.clientHeight - rect.bottom;
     }
-  }
+  };
 
   private _dragDrag = ($event: MouseEvent) => {
     if (this._state.isDragging) {
@@ -575,7 +600,7 @@ export class Feedback {
       this._drawOptions.style.transform = `${this._drawOptionsPos.currTransform} ${this._drawOptionsPos.nextTransform}`;
       this._state.dragged = true;
     }
-  }
+  };
 
   private _dragStop = ($event: MouseEvent) => {
     this._state.isDragging = false;
@@ -583,7 +608,7 @@ export class Feedback {
       this._drawOptionsPos.currTransform = `${this._drawOptionsPos.currTransform} ${this._drawOptionsPos.nextTransform}`;
       this._state.dragged = false;
     }
-  }
+  };
 
   private _drawStart = ($event: MouseEvent) => {
     if (this._state.canDraw) {
@@ -595,7 +620,7 @@ export class Feedback {
         height: 0
       };
     }
-  }
+  };
 
   private _drawStop = ($event: MouseEvent) => {
     if (this._state.canDraw) {
@@ -622,7 +647,7 @@ export class Feedback {
       this._helpers.push(helper);
       this._redraw();
     }
-  }
+  };
 
   private _drawDraw = ($event: MouseEvent) => {
     $event.preventDefault();
@@ -664,7 +689,7 @@ export class Feedback {
         this._ctx.fillRect(this._area.startX, this._area.startY, this._area.width, this._area.height);
       }
     }
-  }
+  };
 
   private _resetCanvas() {
     this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
@@ -850,7 +875,7 @@ export class Feedback {
       this._helperElements.push(this._createHelper(helper));
       this._helpers.push(helper);
     }
-  }
+  };
 
   private _onScroll = () => {
 
@@ -860,7 +885,7 @@ export class Feedback {
     this._canvas.style.top = `${y}px`;
     this._helpersContainer.style.left = `${x}px`;
     this._helpersContainer.style.top = `${y}px`;
-  }
+  };
 
   private _showSending() {
     const container = document.createElement('div');
