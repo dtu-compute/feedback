@@ -1,22 +1,22 @@
 import * as html2canvas from 'html2canvas';
 import { library, dom, icon } from '@fortawesome/fontawesome-svg-core'
-import { faGripHorizontal, faHighlighter, faEraser } from '@fortawesome/free-solid-svg-icons'
+import { faGripHorizontal, faHighlighter, faEraser, faSpinner, faEdit } from '@fortawesome/free-solid-svg-icons'
 
-library.add(faGripHorizontal, faHighlighter, faEraser);
+library.add(faGripHorizontal, faHighlighter, faEraser, faEdit, faSpinner);
 
 /*
   TODO:
   - theming
     - tooltips
-    - fancy loading animation while waiting for screenshot
-    - fancy loading animation while sending
+    - [X] fancy loading animation while waiting for screenshot
+    - [X} fancy loading animation while sending
     - better messages
     - icons
       - remove (on helper)
       - [X] drag
       - [X] highlight
       - [X] blackout
-      - edit (on screenshot)
+      - [X] edit (on screenshot)
     - helper when opening drawer first
     - ripple effect for checkbox
   - use options (like backgroundOpacity, classPrefix)
@@ -317,15 +317,15 @@ export class Feedback {
       y: window.pageYOffset
     };
 
-    while (this._screenshotContainer.firstChild) {
-      this._screenshotContainer.removeChild(this._screenshotContainer.firstChild);
-    }
+    [...this._screenshotContainer.querySelectorAll('canvas')].forEach( el => this._screenshotContainer.removeChild(el));
 
+    this._screenshotContainer.classList.add(classFor('screenshot-loading'));
     this._redraw(false);
     html2canvas(document.body, this._html2canvasOptions).then((canvas: HTMLCanvasElement) => {
       this._screenshotCanvas = canvas;
       this._screenshotContainer.appendChild(canvas);
       this._redraw();
+      this._screenshotContainer.classList.remove(classFor('screenshot-loading'));
     });
   }
 
@@ -454,6 +454,23 @@ export class Feedback {
     const screenshotContainer = document.createElement('div');
     screenshotContainer.className = classFor('screenshot');
     screenshotContainer.addEventListener('click', this._openDrawer);
+
+    const editOverlay = document.createElement('div');
+    const loadingOverlay = document.createElement('div');
+
+    loadingOverlay.className = classFor('screenshot-loading-overlay');
+    loadingOverlay.innerHTML = icon(faSpinner,
+        { classes: [classFor('screenshot-loading-icon')]}
+    ).html[0];
+
+    editOverlay.className = classFor('screenshot-edit-overlay');
+    editOverlay.innerHTML = icon(faEdit,
+        { classes: [classFor('screenshot-edit-icon')]}
+    ).html[0];
+
+    screenshotContainer.appendChild(loadingOverlay);
+    screenshotContainer.appendChild(editOverlay);
+
     this._screenshotContainer = screenshotContainer;
     return screenshotContainer;
   }
@@ -500,7 +517,6 @@ export class Feedback {
     drawOptions.className = classFor('draw-options');
 
     const draggerContainer = document.createElement('div');
-    const draggerContainerIcon = document.createElement('i');
     draggerContainer.classList.add(classFor('dragger'));
     draggerContainer.innerHTML = icon(faGripHorizontal,
                               { classes: [classFor('dragger-icon')]}
@@ -852,7 +868,7 @@ export class Feedback {
 
       this._paintArea(false);
     }
-  }
+  };
 
   private _addHighlightedElement = ($event: MouseEvent) => {
     if (this._highlightedArea) {
@@ -889,8 +905,16 @@ export class Feedback {
 
   private _showSending() {
     const container = document.createElement('div');
-    container.className = 'status';
-    container.innerText = 'sending...';
+    container.className = classFor('sending-status');
+    const statusText = document.createElement('span');
+    statusText.innerText = 'sending...';
+
+    container.innerHTML = icon(faSpinner,
+        { classes: [classFor('sending-status-icon')]}
+    ).html[0];
+
+    container.prepend(statusText);
+
     this._sendingContainer = container;
     this._formContainer.appendChild(container);
     this._form.style.display = 'none';
@@ -899,8 +923,11 @@ export class Feedback {
   private _showSent() {
     this._formContainer.removeChild(this._sendingContainer);
     const container = document.createElement('div');
-    container.className = 'status';
-    container.innerText = 'sent...';
+    container.className = classFor('sending-status');
+
+    const statusText = document.createElement('span');
+    statusText.innerText = 'sent!';
+    container.appendChild(statusText);
 
     const buttonContainer = document.createElement('div');
     buttonContainer.classList.add('mat-button');
@@ -920,8 +947,11 @@ export class Feedback {
   private _showError() {
     this._formContainer.removeChild(this._sendingContainer);
     const container = document.createElement('div');
-    container.className = 'status';
-    container.innerText = 'error...';
+    container.className = classFor('sending-status');
+
+    const statusText = document.createElement('span');
+    statusText.innerText = 'error!';
+    container.appendChild(statusText);
 
     const actions = document.createElement('div');
     actions.className = 'actions';
