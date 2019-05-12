@@ -317,7 +317,7 @@ export class Feedback {
       y: window.pageYOffset
     };
 
-    [...this._screenshotContainer.querySelectorAll('canvas')].forEach( el => this._screenshotContainer.removeChild(el));
+    Array.from(this._screenshotContainer.querySelectorAll('canvas')).forEach( el => this._screenshotContainer.removeChild(el));
 
     this._screenshotContainer.classList.add(classFor('screenshot-loading'));
     this._redraw(false);
