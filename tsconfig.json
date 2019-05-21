@@ -4,12 +4,12 @@
     "target": "es2015",
     "sourceMap": true,
     "declaration": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "lib": [
+      "es2017",
+      "dom"
+    ]
   },
-  "lib": [
-    "es2017",
-    "dom"
-  ],
   "include": [
     "index.ts",
     "lib/**/*"

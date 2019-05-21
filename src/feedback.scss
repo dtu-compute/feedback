@@ -1,3 +1,14 @@
+
+$checkedColor: #4285F4;
+
+@keyframes spinner {
+  to {transform: rotate(360deg);}
+}
+
+@mixin spinAnimate() {
+  animation: spinner 2.0s linear infinite;
+}
+
 #feedback-js {
   position: fixed;
   top: 0;
@@ -19,8 +30,7 @@
     max-width: 360px;
     z-index: 30;
 
-    form, .status {
-      flex-direction: column;
+    form, .fb-sending-status {
       box-sizing: border-box;
       display: flex;
       align-content: stretch;
@@ -32,7 +42,28 @@
       background-color: rgb(250, 250, 250);
     }
 
+    .fb-sending-status {
+      flex-direction: row;
+      position: relative;
+      padding: 10px;
+      align-content: center;
+      justify-content: space-between;
+      align-items: center;
+      svg {
+        position: absolute;
+        left: calc(50% - 0.75em);
+        top: calc(50% - 0.75em);
+        width: 1.5em;
+        height: 1.5em;
+        @include spinAnimate();
+      }
+    }
+
     form {
+      flex-direction: column;
+      align-content: stretch;
+      justify-content: flex-start;
+      align-items: stretch;
       .fb-header {
         background-color: rgb(96, 125, 139);
         box-sizing: border-box;
@@ -133,9 +164,51 @@
           width: auto !important;
           max-height: 100%;
         }
+
+        > .fb-screenshot-edit-overlay,
+        > .fb-screenshot-loading-overlay {
+          position: absolute;
+          left: 0;
+          right: 0;
+          width: 100%;
+          height: 100%;
+        }
+        > .fb-screenshot-loading-overlay {
+          display: none;
+          color: $checkedColor;
+          > .fb-screenshot-loading-icon {
+            position:absolute;
+            @include spinAnimate();
+            width: 30%;
+            height: 30%;
+            top: 35%;
+            left: 35%;
+          }
+        }
+        > .fb-screenshot-edit-overlay {
+          color: $checkedColor;
+          > .fb-screenshot-edit-icon {
+            position: absolute;
+            top: 10%;
+            right: 10%;
+            width: 10%;
+            height: 10%;
+            z-index: 10;
+          }
+        }
       }
 
-      small {
+      .fb-screenshot.fb-screenshot-loading {
+        .fb-screenshot-loading-overlay {
+          display: block;
+        }
+        .fb-screenshot-edit-overlay {
+          display: none;
+        }
+      }
+
+
+        small {
         color: rgb(117, 117, 117);
         display: block;
         font-style: normal;
@@ -194,14 +267,33 @@
     display: -webkit-inline-flex;
     display: inline-flex;
     flex-direction: row;
+    justify-content: space-evenly;
     height: 56px;
     min-width: 232px;
 
-    .dragger {
+    > button {
+      margin: 0 8px;
+      svg {
+        margin-right: 5px;
+        width: 1.5em;
+      }
+    }
+
+    .fb-dragger {
       height: 100%;
       background-color: #fff;
       cursor: move;
       cursor: -webkit-grab;
+      display: flex;
+      align-content: flex-start;
+      flex-direction: column;
+
+      .fb-dragger-icon {
+        padding: 2px 5px;
+        width: 3em;
+        height: 2em;
+        fill: #757575;
+      }
     }
   }
 
